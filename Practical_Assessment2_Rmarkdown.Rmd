@@ -1,0 +1,205 @@
+---
+title: "Data Wrangling (Data Preprocessing)"
+author: "Farhan Ahmed"
+subtitle: Practical assessment 2
+date: "07/10/2022"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+---
+
+
+## **Setup**
+
+```{r}
+
+# Load the necessary packages required to reproduce the report. For example:
+
+library(dplyr)
+library(kableExtra)
+library(magrittr)
+library(readr)
+library(tidyr)
+library(readxl)
+```
+
+
+## **Student names, numbers and percentage of contributions**
+```{r, echo=FALSE}
+
+# Add your names, numbers and percentage of your contribution here.
+
+na<- c("Farhan Ahmed","Jack Mulder")
+no<- c("s3914456","s3954768")
+pc<- c("50%","50%")
+
+s<- data.frame(cbind(na,no,pc))
+colnames(s)<- c("Student name", "Student number", "Percentage of contribution")
+
+s %>% kbl(caption = "Group information") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+<br>
+<br>
+
+## **Executive Summary**
+
+In your own words, provide a brief summary of the preprocessing. Explain the steps that you have taken to preprocess your data. Write this section last after you have performed all data preprocessing. (Word count Max: 300 words)
+You may use bulleted lists like this:
+
+* a
+* b
+* ....
+
+<br>
+<br>
+
+## **Data**
+
+<!--> What data is included, and what does it represent? What is the source of the data? How was it collected?<-->
+
+We have used two data sets for our project. One of them is an untidy data set and the other one is a tidy data set.
+
+* Untidy data set - US states with average tuition fees from the year 2004 to 2016 (xlsx file format)
+
+```{r}
+# Reading the xlsx file and storing it
+tuition_data <- read_excel("us_avg_tuition.xlsx")
+
+# Displaying the first 6 observations
+head(tuition_data)
+```
+
+* Tidy data set - US state-wise demographics (csv file format)
+
+```{r}
+# Reading the csv file and storing it
+state_data<-read.csv("state_demographics.csv")
+
+# Selecting specific variables and storing them
+state_data<-state_data%>%select(State, Population.2014.Population, Education.Bachelor.s.Degree.or.Higher, Education.High.School.or.Higher,Income.Per.Capita.Income, Income.Median.Houseold.Income)
+
+# Displaying the first 6 observations
+head(state_data)
+```
+
+Before we go ahead and merge the two data sets based on the common key variable, we need to first convert the untidy data set into proper structure using the tidy principles.
+
+<br>
+<br>
+
+
+##	**Tidy & Manipulate Data I **
+
+The US average tuition fees data set is untidy because the column headers except the first column 'State' are all values of a variable and not variable names.
+
+* The 12 columns from 2004-05 all the way to 2015-16 should represent as values of the year variable.
+
+* The values of the year variable should be separated such as (2004,2005,..)
+
+So this way we could use the apply tidy principles by each variable having one column, each row having one observation and each value having one cell. 
+
+```{r}
+# Applying wide to long formatting from column 2 till column 13
+tuition_data <- tuition_data %>% pivot_longer(names_to = "year", values_to = "Avg tuition (USD)", cols = 2:13)
+```
+
+Here we convert from wide to long format by using the function pivot_longer() which is an updated alternate to gather() function. We specify the names_to as the name of our variable 'year' containing the years as values and values_to as 'Avg tuition (USD)' containing the tuition fee values.
+
+```{r}
+# Separating year to achieve one row one observation
+tuition_data <- tuition_data %>% separate(year, into = c("year"), sep ="-")
+# Converting type of variable year to double
+tuition_data$year %<>% as.double()
+```
+
+We are now separating the year variable to keep the year column structured as YYYY, therefore 2004-05 is now 2004, 2005-06 is now 2005 and so on. 
+
+<br>
+<br>
+
+## **Tidy & Manipulate Data II** 
+
+We will be focusing on the US states demographic data set here, since the demographic statistics of the data are of the year 2014, we will first add a variable year containing value 2014.
+
+```{r}
+# Since we will be focusing only for the year 2014, we add a variable year to the other data set
+state_data$year<-2014
+```
+```{r}
+merged_data<- mutate(merged_data, income.to.tuition.cost.ratio = `Income.Median.Houseold.Income`/`Avg tuition (USD)`)
+```
+
+Since both are data sets are in the appropriate structure, we will now be merging the two data sets based on the common key variable 'State' and 'year
+
+```{r}
+# Merging the two data sets using full join
+merged_data<-full_join(tuition_data, state_data)
+
+# Using filter() to extract and view observations only for the year 2014
+merged_data%<>% filter(year==2014)
+
+# Displaying the first 6 observations
+head(merged_data)
+```
+
+We will be focusing only on year 2014 as the state demographics of the data set contains data from the year 2014, so it would make more sense focusing on this year only.
+
+Both the data sets have been merged and stored as 'merged_data' and we have used the filter() function from the dplyr library to extract observations belonging to the year 2014.
+
+<br>
+<br>
+
+## **Understand** 
+
+```{r}
+# This is the R chunk for the Tidy & Manipulate Data I 
+
+```
+
+Provide explanations here. 
+
+<br>
+<br>
+
+##	**Scan I **
+
+```{r}
+# This is the R chunk for the Scan I
+
+```
+
+Provide explanations here. 
+
+<br>
+<br>
+
+##	**Scan II**
+
+```{r}
+# This is the R chunk for the Scan II
+
+```
+
+Provide explanations here. 
+
+<br>
+<br>
+
+##	**Transform **
+
+```{r}
+# This is the R chunk for the Transform Section
+
+```
+
+Provide explanations here. 
+
+
+
+<br>
+<br>
+
