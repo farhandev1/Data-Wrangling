@@ -1,0 +1,10 @@
+# numerical rules
+#Population.2014.Population >= 0
+#Avg tuition (USD) >= 0
+#Income.Median.Houseold.Income >= 0
+#Education.Bachelor.s.Degree.or.Higher >= 0
+#Education.High.School.or.Higher >= 0
+#Income.Per.Capita.Income >= 0
+
+# categorical rules
+#Income.status %in% c("Low","Medium","High")
