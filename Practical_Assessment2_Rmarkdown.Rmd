@@ -62,8 +62,18 @@ You may use bulleted lists like this:
 <!--> What data is included, and what does it represent? What is the source of the data? How was it collected?<-->
 
 We have used two data sets for our project. One of them is an untidy data set and the other one is a tidy data set.
+The first data set used was, US states with average tuition fees from the year 2004 to 2016 (xlsx file format). This was an untidy data set. This data set was collected from MBA Online Page(insert reffrence). The second data set, US state demographics for 2014, was collected from github but was orignally collected from United States Census Bureau().
 
-* Untidy data set - US states with average tuition fees from the year 2004 to 2016 (xlsx file format)
+* tidy data set - US state demographics with 48 variables with 51 observations
+* In this data set 6 of the variables were focused on
+  + State is a string variable containing the name of the sate
+  + Population.2014.Population is a numeric variable, containing the population of each state in 2014
+  +Education.Bachelor.s.Degree.or.Higher is numeric variable, containing the percentage of the population who have a bachelors degree or higher
+  +
+
+* Untidt data set - US state average tuition
+* Each observation had a state name(string) and then the average price of tuition per year(num)
+
 
 ```{r}
 # Reading the xlsx file and storing it
@@ -129,6 +139,13 @@ We will be focusing on the US states demographic data set here, since the demogr
 # Since we will be focusing only for the year 2014, we add a variable year to the other data set
 state_data$year<-2014
 ```
+
+```{r}
+mergered%<>% mutate(Income.status = case_when(Income.Median.Houseold.Income<60000~"Low",
+                                              Income.Median.Houseold.Income>60000 & Income.Median.Houseold.Income<72500~"Medium",
+                                              Income.Median.Houseold.Income>72500~"High"))
+```
+
 ```{r}
 merged_data<- mutate(merged_data, income.to.tuition.cost.ratio = `Income.Median.Houseold.Income`/`Avg tuition (USD)`)
 ```
