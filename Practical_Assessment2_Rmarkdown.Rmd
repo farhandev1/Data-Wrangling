@@ -8,8 +8,10 @@ output:
     df_print: paged
   pdf_document: default
   html_notebook: default
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
-
 
 ## **Setup**
 
@@ -23,10 +25,11 @@ library(magrittr)
 library(readr)
 library(tidyr)
 library(readxl)
+library(outliers)
 ```
 
-
 ## **Student names, numbers and percentage of contributions**
+
 ```{r, echo=FALSE}
 
 # Add your names, numbers and percentage of your contribution here.
@@ -42,38 +45,51 @@ s %>% kbl(caption = "Group information") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 
 ```
-<br>
-<br>
+
+<br> <br>
 
 ## **Executive Summary**
 
-In your own words, provide a brief summary of the preprocessing. Explain the steps that you have taken to preprocess your data. Write this section last after you have performed all data preprocessing. (Word count Max: 300 words)
-You may use bulleted lists like this:
+The first step in processing the data was tidying the untidy dataset. This was done by making sure all variables had one column and each row being a single observation this was achieved through using pivot_longer. The two data sets where then merged.  Once merged two new columns were created one being the ratio of household income to college tuition, the other being a factor ordering household income status as either low, medium, or high.
+All numeric columns bar year were inspected for outlier using either Tukey’s method or z-score depending on whether the data was normalized or not according to the Shapiro-Wilk test for normalization. Outlier where only detected in the non-normalized data, this meant that a transformation could be used to handle any outliers. 
+Histograms were used to determine whether data was left or right skewed, once they were identified an appropriate data transformation could take place, this was log10 or reciprocal for right skewness and a cubed transformation for left skewed data. Then z-scores where used to confirm that their were no outliers and the Shapiro-Wilk test to confirm that the data was normally distributed. 
 
-* a
-* b
-* ....
 
-<br>
-<br>
+<br> <br>
 
 ## **Data**
 
-<!--> What data is included, and what does it represent? What is the source of the data? How was it collected?<-->
+\<!--\> What data is included, and what does it represent? What is the
+source of the data? How was it collected?\<--\>
 
-We have used two data sets for our project. One of them is an untidy data set and the other one is a tidy data set.
-The first data set used was, US states with average tuition fees from the year 2004 to 2016 (xlsx file format). This was an untidy data set. This data set was collected from MBA Online Page(insert reffrence). The second data set, US state demographics for 2014, was collected from github but was orignally collected from United States Census Bureau().
+We have used two data sets for our project. One of them is an untidy
+data set and the other one is a tidy data set. The first data set used
+was, US states with average tuition fees from the year 2004 to 2016
+(xlsx file format). This was an untidy data set. This data set was
+collected from gitHub(us_avg_tuition.xlsx, 2022). The second data set,
+US state demographics for 2014, was collected from github(CORGIS Datasets Project, 2022) but was
+originally collected from United States Census Bureau.
 
-* tidy data set - US state demographics with 48 variables with 51 observations
-* In this data set 6 of the variables were focused on
-  + State is a string variable containing the name of the sate
-  + Population.2014.Population is a numeric variable, containing the population of each state in 2014
-  +Education.Bachelor.s.Degree.or.Higher is numeric variable, containing the percentage of the population who have a bachelors degree or higher
-  +
-
-* Untidt data set - US state average tuition
-* Each observation had a state name(string) and then the average price of tuition per year(num)
-
+-   tidy data set - US state demographics with 48 variables with 51
+    observations
+-   In this data set 6 of the variables were focused on
+    -   State is a string variable containing the name of the sate
+    -   Population.2014.Population is a numeric variable, containing the
+        population of each state in 2014
+    -   Education.Bachelor.s.Degree.or.Higher is numeric variable,
+        containing the percentage of the population who have a bachelors
+        degree or higher
+    -   Education.High.School.or.Higher is an numeric variable,
+        containing the percentage of the population who have completed
+        high school or higher
+    -   Income.Per.Capita.Income is a numeric variable, containing the
+        income per capita for the state in USD
+    -   Income.Median.Houseold.Income is a numeric variable, containing
+        the median household income for each state in USD
+-   Untidy data set - US state average college tuition
+    -   Each observation had a variable state, which is a string
+        containing the state name, as well as the cost of tuition for
+        each year in USD as numeric variable
 
 ```{r}
 # Reading the xlsx file and storing it
@@ -83,7 +99,7 @@ tuition_data <- read_excel("us_avg_tuition.xlsx")
 head(tuition_data)
 ```
 
-* Tidy data set - US state-wise demographics (csv file format)
+-   Tidy data set - US state-wise demographics (csv file format)
 
 ```{r}
 # Reading the csv file and storing it
@@ -96,28 +112,38 @@ state_data<-state_data%>%select(State, Population.2014.Population, Education.Bac
 head(state_data)
 ```
 
-Before we go ahead and merge the two data sets based on the common key variable, we need to first convert the untidy data set into proper structure using the tidy principles.
+Before we go ahead and merge the two data sets based on the common key
+variable, we need to first convert the untidy data set into proper
+structure using the tidy principles.
 
-<br>
-<br>
+<br> <br>
 
+## **Tidy & Manipulate Data I**
 
-##	**Tidy & Manipulate Data I **
+The US average tuition fees data set is untidy because the column
+headers except the first column 'State' are all values of a variable and
+not variable names.
 
-The US average tuition fees data set is untidy because the column headers except the first column 'State' are all values of a variable and not variable names.
+-   The 12 columns from 2004-05 all the way to 2015-16 should represent
+    as values of the year variable.
 
-* The 12 columns from 2004-05 all the way to 2015-16 should represent as values of the year variable.
+-   The values of the year variable should be separated such as
+    (2004,2005,..)
 
-* The values of the year variable should be separated such as (2004,2005,..)
-
-So this way we could use the apply tidy principles by each variable having one column, each row having one observation and each value having one cell. 
+So this way we could use the apply tidy principles by each variable
+having one column, each row having one observation and each value having
+one cell.
 
 ```{r}
 # Applying wide to long formatting from column 2 till column 13
 tuition_data <- tuition_data %>% pivot_longer(names_to = "year", values_to = "Avg tuition (USD)", cols = 2:13)
 ```
 
-Here we convert from wide to long format by using the function pivot_longer() which is an updated alternate to gather() function. We specify the names_to as the name of our variable 'year' containing the years as values and values_to as 'Avg tuition (USD)' containing the tuition fee values.
+Here we convert from wide to long format by using the function
+pivot_longer() which is an updated alternate to gather() function. We
+specify the names_to as the name of our variable 'year' containing the
+years as values and values_to as 'Avg tuition (USD)' containing the
+tuition fee values.
 
 ```{r}
 # Separating year to achieve one row one observation
@@ -126,31 +152,24 @@ tuition_data <- tuition_data %>% separate(year, into = c("year"), sep ="-")
 tuition_data$year %<>% as.double()
 ```
 
-We are now separating the year variable to keep the year column structured as YYYY, therefore 2004-05 is now 2004, 2005-06 is now 2005 and so on. 
+We are now separating the year variable to keep the year column
+structured as YYYY, therefore 2004-05 is now 2004, 2005-06 is now 2005
+and so on.
 
-<br>
-<br>
+<br> <br>
 
-## **Tidy & Manipulate Data II** 
+## **Tidy & Manipulate Data II**
 
-We will be focusing on the US states demographic data set here, since the demographic statistics of the data are of the year 2014, we will first add a variable year containing value 2014.
+We will be focusing on the US states demographic data set here, since
+the demographic statistics of the data are of the year 2014, we will
+first add a variable year containing value 2014.
 
 ```{r}
 # Since we will be focusing only for the year 2014, we add a variable year to the other data set
 state_data$year<-2014
 ```
 
-```{r}
-mergered%<>% mutate(Income.status = case_when(Income.Median.Houseold.Income<60000~"Low",
-                                              Income.Median.Houseold.Income>60000 & Income.Median.Houseold.Income<72500~"Medium",
-                                              Income.Median.Houseold.Income>72500~"High"))
-```
 
-```{r}
-merged_data<- mutate(merged_data, income.to.tuition.cost.ratio = `Income.Median.Houseold.Income`/`Avg tuition (USD)`)
-```
-
-Since both are data sets are in the appropriate structure, we will now be merging the two data sets based on the common key variable 'State' and 'year
 
 ```{r}
 # Merging the two data sets using full join
@@ -163,60 +182,183 @@ merged_data%<>% filter(year==2014)
 head(merged_data)
 ```
 
-We will be focusing only on year 2014 as the state demographics of the data set contains data from the year 2014, so it would make more sense focusing on this year only.
 
-Both the data sets have been merged and stored as 'merged_data' and we have used the filter() function from the dplyr library to extract observations belonging to the year 2014.
 
-<br>
-<br>
+We will be focusing only on year 2014 as the state demographics of the
+data set contains data from the year 2014, so it would make more sense
+focusing on this year only.
 
-## **Understand** 
+Both the data sets have been merged and stored as 'merged_data' and we
+have used the filter() function from the dplyr library to extract
+observations belonging to the year 2014.
+```{r}
+merged_data%<>% mutate(Income.status = case_when(Income.Median.Houseold.Income<60000~"Low",
+                                              Income.Median.Houseold.Income>60000 & Income.Median.Houseold.Income<72500~"Medium",
+                                              Income.Median.Houseold.Income>72500~"High"))
+```
+
+```{r}
+merged_data<- mutate(merged_data, income.to.tuition.cost.ratio = `Income.Median.Houseold.Income`/`Avg tuition (USD)`)
+```
+
+Since both are data sets are in the appropriate structure, we will now
+be merging the two data sets based on the common key variable 'State'
+and 'year
+<br> <br>
+
+## **Understand**
 
 ```{r}
 # This is the R chunk for the Tidy & Manipulate Data I 
 
 ```
 
-Provide explanations here. 
+Provide explanations here.
 
-<br>
-<br>
+<br> <br>
 
-##	**Scan I **
+## **Scan I**
 
 ```{r}
 # This is the R chunk for the Scan I
 
 ```
 
-Provide explanations here. 
+Provide explanations here.
 
-<br>
-<br>
+<br> <br>
 
-##	**Scan II**
+## **Scan II**
 
 ```{r}
-# This is the R chunk for the Scan II
+par(mfrow = c(2, 2)) 
+merged_data$income.to.tuition.cost.ratio %>% 
+  boxplot(main = "Box Plot of income to tuition ratio", 
+          ylab = "ratio")
+
+merged_data$`Avg tuition (USD)` %>% 
+  boxplot(main = "Box Plot of averge tuition cost", 
+          ylab = "tuition cost(USD)") 
+
+merged_data$Income.Median.Houseold.Income%>% 
+  boxplot(main = "Box Plot of Median household incomes", 
+          ylab = "$USD") 
+
+merged_data$Education.Bachelor.s.Degree.or.Higher %>% 
+  boxplot(main = "Box Plot %bachelors degree", 
+          ylab = "% of the population")
+par(mfrow = c(1, 1))
+
+
+```
+```{r}
+
+par(mfrow = c(2, 2))
+
+merged_data$Education.High.School.or.Higher %>% 
+  boxplot(main = "Box Plot  of % High school degree", 
+          ylab = "% of the population")
+merged_data$Income.Per.Capita.Income %>% 
+  boxplot(main = "Box Plot of Income per Capita ", 
+          ylab = "$USD")
+merged_data$Population.2014.Population %>% 
+  boxplot(main = "Population in 2014", 
+          ylab = "Population 1000")
+par(mfrow = c(2, 2))
+```
+Using box plots we can scan for any outliers within the data. However this method is useful it only works on non-normal data, so it should be checked if the data is normally distributed.  
+
+```{r}
+shapiro.test(merged_data$income.to.tuition.cost.ratio)
+shapiro.test(merged_data$`Avg tuition (USD)`)
+shapiro.test(merged_data$Income.Median.Houseold.Income)
+shapiro.test(merged_data$Education.Bachelor.s.Degree.or.Higher)
+shapiro.test(merged_data$Education.High.School.or.Higher)
+shapiro.test(merged_data$Income.Per.Capita.Income)
+shapiro.test(merged_data$Population.2014.Population)
+
+
+```
+Using the Shapiro Wilk test it can be seen that two of columns are normally distributed, as the p-value score is greater than 0.05 meaning that that the null hypothesis that the data is normally distributed is accepted. This means Tukeys method should not be used on average tuition and median household income as they are normally distributed.
+
+With the columns that are not normally distributed, they will first be transformed to decrease the skweness and convert to a normal distribution and to get rid of any outliers.
+
+```{r}
+z.score<- merged_data$`Avg tuition (USD)`%>% scores(type = "z")
+length(which(abs(z.score) >3 ))
+z.score1<- merged_data$Income.Median.Houseold.Income%>% scores(type = "z")
+length(which(abs(z.score1) >3 ))
+
+
+
+```
+Here z scores have been used to detect outliers in the normally distributed data. A z score greater than 3 indicates an outlier but, here it can be seen that no outliers have been found.
+
+
+
+## **Transform**
+
+```{r}
+par(mfrow= c(2,3))
+
+hist(merged_data$income.to.tuition.cost.ratio, main = "Histogram of ratio")
+
+hist(merged_data$Income.Per.Capita.Income, main = "Histogram of Ang Tuition")
+
+hist(merged_data$Population.2014.Population, main = "Histogram of pop")
+
+hist(merged_data$Education.Bachelor.s.Degree.or.Higher, main = "Histogram of %Bachelors")
+
+hist(merged_data$Education.High.School.or.Higher, main = "Histogram of %Highschool")
+
+par(mfrow= c(4,4))
 
 ```
 
-Provide explanations here. 
-
-<br>
-<br>
-
-##	**Transform **
+Here we can see that that all of this data is skewed which is leading to outliers. This can also be visualized through a Q-Q plot as seen below with the population data.The deviation of the data from the red line shows that the data skewed.
 
 ```{r}
-# This is the R chunk for the Transform Section
+qqnorm(merged_data$Population.2014.Population, main = "Q-Q Plot of Population") 
+qqline(merged_data$Population.2014.Population, col = "red", lwd = 1, lty = 2)
 
 ```
+The deviation of the data from the red line shows that the data skewed.
 
-Provide explanations here. 
+```{r}
+merged_data$Population.2014.Population <- log10(merged_data$Population.2014.Population)
+merged_data$Education.Bachelor.s.Degree.or.Higher<- -1/(merged_data$Education.Bachelor.s.Degree.or.Higher)
+merged_data$income.to.tuition.cost.ratio<- log10(merged_data$income.to.tuition.cost.ratio)
+merged_data$Income.Per.Capita.Income<- -1/(merged_data$Income.Per.Capita.Income)
+
+merged_data$Education.High.School.or.Higher<- merged_data$Education.High.School.or.Higher^3
+
+shapiro.test(merged_data$income.to.tuition.cost.ratio)
+shapiro.test(merged_data$Education.Bachelor.s.Degree.or.Higher)
+shapiro.test(merged_data$Income.Per.Capita.Income)
+shapiro.test(merged_data$Population.2014.Population)
+shapiro.test(merged_data$Education.High.School.or.Higher)
+
+z.score<- merged_data$Population.2014.Population%>% scores(type = "z")
+length(which(abs(z.score) >3 ))
+z.score1<- merged_data$Education.Bachelor.s.Degree.or.Higher%>% scores(type = "z")
+length(which(abs(z.score1) >3 ))
+z.score2<- merged_data$income.to.tuition.cost.ratio%>% scores(type = "z")
+length(which(abs(z.score2) >3 ))
+z.score3<- merged_data$Income.Per.Capita.Income%>% scores(type = "z")
+length(which(abs(z.score3) >3 ))
+z.score4<- merged_data$Education.High.School.or.Higher%>% scores(type = "z")
+length(which(abs(z.score4) >3 ))
+```
+
+The data here was all not normally distributed before but is now normally distributed, this process has also removed any outliers from the data. For the transformation, the right skewed data underwent either a log10 transformation or a reciprocal transformation. As for the left skewed data it underwent a cubed transformation. 
+
+
+##References
+Corgis-edu.github.io. 2022. CORGIS Datasets Project. [online] Available at: <https://corgis-edu.github.io/corgis/csv/state_demographics/> [Accessed 7 October 2022].
+
+GitHub. 2022. us_avg_tuition.xlsx. [online] Available at: <https://github.com/rfordatascience/tidytuesday/tree/master/data/2018/2018-04-02> [Accessed 7 October 2022].
 
 
 
-<br>
-<br>
+
 
